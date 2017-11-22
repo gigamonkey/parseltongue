@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 
-import types
-
 class TextInput:
 
     def __init__(self, text, position=0):
@@ -11,10 +9,14 @@ class TextInput:
     def next(self, newpos):
         return TextInput(self.text, newpos)
 
+    def between(self, next):
+        return self.text[self.position:next.position]
+
     def match_string(self, s):
         p = self.position
-        if self.text[p:p+len(s)] == s:
-            return True, self.next(p + len(s)), s
+        end = p + len(s)
+        if self.text[p:end] == s:
+            return True, self.next(end), s
         else:
             return False, self, p
 
@@ -27,14 +29,11 @@ class TextInput:
 
 class Matcher:
 
-    def __call__(self, input):
-        return self.match(input)
-
     def then(self, expr):
         return SequenceMatcher([self, match(expr)])
 
-    def returning(self, fn):
-        return Builder(self, fn)
+    def returning(self, x):
+        return Builder(self, x if callable(x) else lambda _: x)
 
 class Builder(Matcher):
 
@@ -164,6 +163,17 @@ class NotMatcher(Matcher):
         ok, _, _ = self.expr.match(input)
         return not ok, input, None
 
+class TextMatcher(Matcher):
+
+    def __init__(self, expr):
+        self.expr = expr
+
+    def match(self, input):
+        ok, next, r = self.expr.match(input)
+        if ok:
+            return ok, next, ''.join(x for x in r if x is not None)
+        else:
+            return False, input, None
 #
 # API
 #
@@ -171,7 +181,7 @@ class NotMatcher(Matcher):
 def match(expr):
     if type(expr) == str:
         return StringMatcher(expr)
-    elif type(expr) == types.FunctionType:
+    elif callable(expr):
         return CharMatcher(expr)
     else:
         return expr
@@ -194,17 +204,20 @@ def not_looking_at(expr):
 def choice(*exprs):
     return OrMatcher([match(e) for e in exprs])
 
+def text(expr):
+    return TextMatcher(expr)
+
 if __name__ == '__main__':
 
-    digit = match(lambda c: c.isdigit())
+    digit    = match(lambda x: x.isdigit())
+    number   = text(star(digit)).returning(lambda r: int(r))
+    ws       = star(match(lambda c: c.isspace())).returning(None)
+    plus     = text(ws.then('+').then(ws))
+    addition = number.then(plus).then(number)
 
-    number = star(digit).returning(lambda r: int(''.join(r)))
+    input = TextInput('1234 + 4567')
 
-    addition = number.then('+').then(number)
-
-    input = TextInput('1234+4567')
-
-    ok, input, r = addition(input)
+    ok, input, r = addition.match(input)
     if ok:
         print(r)
     else:
