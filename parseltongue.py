@@ -209,9 +209,9 @@ def text(expr):
 
 if __name__ == '__main__':
 
-    digit    = match(lambda x: x.isdigit())
-    number   = text(star(digit)).returning(lambda r: int(r))
-    ws       = star(match(lambda c: c.isspace())).returning(None)
+    digit    = match(str.isdigit)
+    number   = text(star(digit)).returning(int)
+    ws       = star(match(str.isspace)).returning(None)
     plus     = text(ws.then('+').then(ws))
     addition = number.then(plus).then(number)
 
