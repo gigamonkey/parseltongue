@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+#
+# Simple PEG parser framework.
+#
 
 class TextInput:
 
@@ -206,19 +208,3 @@ def choice(*exprs):
 
 def text(expr):
     return TextMatcher(expr)
-
-if __name__ == '__main__':
-
-    digit    = match(str.isdigit)
-    number   = text(star(digit)).returning(int)
-    ws       = star(match(str.isspace)).returning(None)
-    plus     = text(ws.then('+').then(ws))
-    addition = number.then(plus).then(number)
-
-    input = TextInput('1234 + 4567')
-
-    ok, input, r = addition.match(input)
-    if ok:
-        print(r)
-    else:
-        print('Parse failed')
