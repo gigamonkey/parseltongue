@@ -14,14 +14,14 @@ if __name__ == '__main__':
 
     def token(s):
         ws = star(match(str.isspace))
-        return ws.then(literal(s)).then(ws).returning(lambda r: r[1])
+        return ws.then(literal(s)).then(ws).returning(1)
 
     def binary(left, op, right):
         return match(left).then(optional(token(op).then(right))).returning(combine)
 
     p = {
         'expression':    binary('term', '+', 'expression'),
-        'parenthesized': token('(').then('expression').then(token(')')).returning(lambda r: r[1]),
+        'parenthesized': token('(').then('expression').then(token(')')).returning(1),
         'factor':        choice('parenthesized', 'number'),
         'term':          binary('factor', '*', 'term'),
         'number':        text(star(str.isdigit)).returning(int),

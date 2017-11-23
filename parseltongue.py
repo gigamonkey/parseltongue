@@ -35,7 +35,14 @@ class Matcher:
         return SequenceMatcher([self, match(expr)])
 
     def returning(self, x):
-        return Builder(self, x if callable(x) else lambda _: x)
+        if callable(x):
+            fn = x
+        elif isinstance(x, int):
+            fn = lambda r: r[x]
+        else:
+            fn = lambda _: x
+
+        return Builder(self, fn)
 
 class Builder(Matcher):
 
