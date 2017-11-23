@@ -43,8 +43,8 @@ class Builder(Matcher):
         self.preceeding = preceeding
         self.fn = fn
 
-    def match(self, parser, input):
-        ok, next, r = self.preceeding.match(parser, input)
+    def match(self, grammar, input):
+        ok, next, r = self.preceeding.match(grammar, input)
         if ok:
             return ok, next, self.fn(r)
         else:
@@ -56,8 +56,8 @@ class RuleMatcher(Matcher):
     def __init__(self, name):
         self.name = name
 
-    def match(self, parser, input):
-        return parser[self.name].match(parser, input)
+    def match(self, grammar, input):
+        return grammar[self.name].match(grammar, input)
 
 
 class StringMatcher(Matcher):
@@ -65,7 +65,7 @@ class StringMatcher(Matcher):
     def __init__(self, s):
         self.s = s
 
-    def match(self, parser, input):
+    def match(self, grammar, input):
         return input.match_string(self.s)
 
 
@@ -74,7 +74,7 @@ class CharMatcher(Matcher):
     def __init__(self, p):
         self.p = p
 
-    def match(self, parser, input):
+    def match(self, grammar, input):
         return input.match_char_predicate(self.p)
 
 class SequenceMatcher(Matcher):
@@ -85,11 +85,11 @@ class SequenceMatcher(Matcher):
     def then(self, expr):
         return SequenceMatcher(self.exprs + [match(expr)])
 
-    def match(self, parser, input):
+    def match(self, grammar, input):
         results = []
         new_input = input
         for e in self.exprs:
-            ok, new_input, r = e.match(parser, new_input)
+            ok, new_input, r = e.match(grammar, new_input)
             if ok:
                 results.append(r)
             else:
@@ -101,9 +101,9 @@ class ChoiceMatcher(Matcher):
     def __init__(self, choices):
         self.choices = choices
 
-    def match(self, parser, input):
+    def match(self, grammar, input):
         for c in self.choices:
-            ok, next, result = c.match(parser, input)
+            ok, next, result = c.match(grammar, input)
             if ok:
                 return ok, next, result
         return False, input
@@ -114,10 +114,10 @@ class StarMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, parser, input):
+    def match(self, grammar, input):
         results = []
         while True:
-            ok, next, r = self.expr.match(parser, input)
+            ok, next, r = self.expr.match(grammar, input)
             if ok:
                 results.append(r)
                 input = next
@@ -132,11 +132,11 @@ class PlusMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, parser, input):
+    def match(self, grammar, input):
         results = []
         new_input = input
         while True:
-            ok, next, r = self.expr.match(parser, new_input)
+            ok, next, r = self.expr.match(grammar, new_input)
             if ok:
                 results.append(r)
                 new_input = next
@@ -151,8 +151,8 @@ class OptionalMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, parser, input):
-        ok, next, r = expr.match(parser, input)
+    def match(self, grammar, input):
+        ok, next, r = self.expr.match(grammar, input)
         if ok:
             return ok, next, r
         else:
@@ -163,8 +163,8 @@ class AndMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, parser, input):
-        ok, _, _ = self.expr.match(parser, input)
+    def match(self, grammar, input):
+        ok, _, _ = self.expr.match(grammar, input)
         return ok, input, None
 
 class NotMatcher(Matcher):
@@ -172,8 +172,8 @@ class NotMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, parser, input):
-        ok, _, _ = self.expr.match(parser, input)
+    def match(self, grammar, input):
+        ok, _, _ = self.expr.match(grammar, input)
         return not ok, input, None
 
 class TextMatcher(Matcher):
@@ -181,8 +181,8 @@ class TextMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, parser, input):
-        ok, next, r = self.expr.match(parser, input)
+    def match(self, grammar, input):
+        ok, next, r = self.expr.match(grammar, input)
         if ok:
             return ok, next, ''.join(x for x in r if x is not None)
         else:
@@ -219,7 +219,10 @@ def not_looking_at(expr):
     return NotMatcher(expr)
 
 def choice(*exprs):
-    return OrMatcher([match(e) for e in exprs])
+    return ChoiceMatcher([match(e) for e in exprs])
 
 def text(expr):
     return TextMatcher(expr)
+
+def parse(grammar, init, input):
+    return grammar[init].match(grammar, input)
