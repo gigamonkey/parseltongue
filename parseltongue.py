@@ -29,6 +29,12 @@ class TextInput:
         else:
             return False, self, p
 
+    def consumed(self):
+        return self.text[:self.position]
+
+    def remaining(self):
+        return self.text[self.position:]
+
 class Matcher:
 
     def then(self, expr):
@@ -64,7 +70,8 @@ class RuleMatcher(Matcher):
         self.name = name
 
     def match(self, grammar, input):
-        return grammar[self.name].match(grammar, input)
+        ok, next, r = grammar[self.name].match(grammar, input)
+        return ok, next, r
 
 
 class StringMatcher(Matcher):
@@ -113,7 +120,7 @@ class ChoiceMatcher(Matcher):
             ok, next, result = c.match(grammar, input)
             if ok:
                 return ok, next, result
-        return False, input
+        return False, input, None
 
 
 class StarMatcher(Matcher):
@@ -148,6 +155,8 @@ class PlusMatcher(Matcher):
                 results.append(r)
                 new_input = next
                 continue
+            else:
+                break
         if len(results) > 0:
             return True, new_input, results
         else:
@@ -217,13 +226,13 @@ def plus(expr):
     return PlusMatcher(match(expr))
 
 def optional(expr):
-    return OptionalMatcher(expr)
+    return OptionalMatcher(match(expr))
 
 def looking_at(expr):
-    return AndMatcher(expr)
+    return AndMatcher(match(expr))
 
 def not_looking_at(expr):
-    return NotMatcher(expr)
+    return NotMatcher(match(expr))
 
 def choice(*exprs):
     return ChoiceMatcher([match(e) for e in exprs])
