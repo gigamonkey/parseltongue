@@ -76,6 +76,9 @@ class Builder(Matcher):
         self.preceeding = preceeding
         self.fn = fn
 
+    def __str__(self):
+        return 'Builder({})'.format(self.preceeding)
+
     def _match(self, grammar, input):
         ok, next, r = self.preceeding.match(grammar, input)
         if ok:
@@ -103,7 +106,7 @@ class StringMatcher(Matcher):
         self.s = s
 
     def __str__(self):
-        return 'StringMatcher(\'{}\')'.format(self.s)
+        return 'StringMatcher(\'{}\')'.format(self.s).replace('\r', '\\r').replace('\n', '\\n').replace('\t', '\\t')
 
     def _match(self, grammar, input):
         return input.match_string(self.s)
