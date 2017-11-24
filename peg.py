@@ -2,13 +2,6 @@
 
 from parseltongue import *
 
-#def token(s):
-#    ws = star(choice(literal(' '), literal('\t')))
-#    return ws.then(literal(s)).then(ws).returning(1)
-
-def as_text(r):
-    return ''.join(x for x in r if x is not None)
-
 def namechar(c):
     return c.isalnum() or c == '_'
 
@@ -30,21 +23,21 @@ def make_sequence(r):
 g = {
     'grammar'         : star('production').then(eof).returning(0),
     'production'      : match('name').then(token(':=')).then('expression').then(star('ws')).then('eol').returning(lambda r: (r[0], r[2])),
-    'name'            : plus(namechar).returning(as_text),
+    'name'            : plus(namechar).returning(text),
     'expression'      : choice('choice', 'sequence'),
     'choice'          : match('sequence').then(plus(token('|').then('sequence'))).returning(make_choice),
     'sequence'        : star(choice('star', 'plus', 'optional', 'and', 'not', 'base_expression').then(star('ws')).returning(0)).returning(make_sequence),
     'base_expression' : choice('unicode', 'rule', 'parenthesized', 'literal', 'token'),
     'parenthesized'   : token('(').then('expression').then(token(')')).returning(1),
-    'unicode'         : match(star('ws')).then(literal('u+').then(plus(hex)).returning(lambda r: StringMatcher(chr(int(as_text(r[1]), 16))))).then(star('ws')).returning(1),
+    'unicode'         : match(star('ws')).then(literal('u+').then(plus(hex)).returning(lambda r: StringMatcher(chr(int(text(r[1]), 16))))).then(star('ws')).returning(1),
     'rule'            : match('name').returning(RuleMatcher),
     'star'            : match('base_expression').then(token('*')).returning(lambda r: StarMatcher(r[0])),
     'plus'            : match('base_expression').then(token('+')).returning(lambda r: PlusMatcher(r[0])),
     'optional'        : match('base_expression').then(token('?')).returning(lambda r: OptionalMatcher(r[0])),
     'and'             : token('&').then('base_expression').returning(lambda r: AndMatcher(r[1])),
     'not'             : token('!').then('base_expression').returning(lambda r: NotMatcher(r[1])),
-    'literal'         : literal("'").then(star(not_looking_at(literal("'")).then(lambda _: True).returning(as_text)).returning(as_text)).then(literal("'")).returning(lambda r: StringMatcher(r[1])),
-    'token'           : literal('#').then(plus(notspace)).returning(lambda r: token(as_text(r[1]))),
+    'literal'         : literal("'").then(star(not_looking_at(literal("'")).then(lambda _: True).returning(text)).returning(text)).then(literal("'")).returning(lambda r: StringMatcher(r[1])),
+    'token'           : literal('#').then(plus(notspace)).returning(lambda r: token(text(r[1]))),
     'ws'              : choice(literal(' '), literal('\t')),
     'eol'             : literal('\n'),
 }

@@ -21,9 +21,6 @@ def make_type(r):
         'fields': fields
     }
 
-def as_text(r):
-    return ''.join(x for x in r if x is not None)
-
 def make_field(r):
     name, arguments, colon, t, ws, eol = r
     return {
@@ -42,13 +39,13 @@ def make_argument(r):
 
 b = {
     'type'          : make_type,
-    'name'          : as_text,
+    'name'          : text,
     'field'         : make_field,
     'arguments'     : 1,
     'argument'      : make_argument,
     'non_nullable'  : lambda r: { 'non-nullable': True, 'type': r[0] },
     'list'          : lambda r: ('list', r[1]),
-    'int'           : lambda r: int(as_text(r)),
+    'int'           : lambda r: int(text(r)),
     'string'        : 1,
 }
 
@@ -56,7 +53,7 @@ grammar = { k : v.returning(b[k]) if k in b else v for k, v in g.items() }
 
 if __name__ == '__main__':
 
-    text = """type foo {
+    text1 = """type foo {
 bar: Int
 baz: [String]
 quux(blah: Int = 123): Int!
@@ -72,7 +69,7 @@ quux(blah: Int = 123): Int!
 
     parseltongue.verbose = False
 
-    input = TextInput(text)
+    input = TextInput(text1)
 
     import json
 

@@ -244,19 +244,6 @@ class NotMatcher(Matcher):
         return not ok, input, None
 
 
-class TextMatcher(Matcher):
-
-    def __init__(self, expr):
-        self.expr = expr
-
-    def _match(self, grammar, input):
-        ok, next, r = self.expr.match(grammar, input)
-        if ok:
-            return ok, next, ''.join(x for x in r if x is not None)
-        else:
-            return False, input, None
-
-
 class EofMatcher(Matcher):
 
     def _match(self, grammar, input):
@@ -296,8 +283,8 @@ def not_looking_at(expr):
 def choice(*exprs):
     return ChoiceMatcher([match(e) for e in exprs])
 
-def text(expr):
-    return TextMatcher(expr)
+def text(r):
+    return ''.join(x for x in r if x is not None)
 
 def parse(grammar, init, input):
     return grammar[init].match(grammar, input)
