@@ -15,11 +15,15 @@ def namechar(c):
 def notspace(c):
     return not c.isspace()
 
+def hex(c):
+    return c in '0123456789abcdefABCDEF'
+
 def unwrap(seq):
     if len(seq.exprs) == 1:
         return seq.exprs[0]
     else:
         return seq
+
 
 def token_matcher(text):
     return match(star('ws')).then(literal(text)).then(star('ws')).returning(1)
@@ -31,8 +35,8 @@ g = {
     'grammar'         : star('production').then(eof).returning(0),
     'production'      : match('name').then(token(':=')).then('sequence').then(star('ws')).then('eol').returning(lambda r: (r[0], unwrap(r[2]))),
     'name'            : plus(namechar).returning(as_text),
-    'expression'      : choice('choice', 'star', 'plus', 'optional', 'and', 'not', 'rule', 'parenthesized', 'literal', 'token').then(star('ws')).returning(0),
-    'base_expression' : choice('rule', 'parenthesized', 'literal', 'token'),
+    'expression'      : choice('choice', 'star', 'plus', 'optional', 'and', 'not', 'unicode', 'rule', 'parenthesized', 'literal', 'token').then(star('ws')).returning(0),
+    'base_expression' : choice('unicode', 'rule', 'parenthesized', 'literal', 'token'),
     'rule'            : match('name').returning(RuleMatcher),
     'parenthesized'   : token('(').then('sequence').then(token(')')).returning(lambda r: unwrap(r[1])),
     'star'            : match('base_expression').then(token('*')).returning(lambda r: StarMatcher(r[0])),
@@ -46,6 +50,7 @@ g = {
     'token'           : literal('#').then(plus(notspace)).returning(lambda r: token_matcher(as_text(r[1]))),
     'ws'              : choice(literal(' '), literal('\t')),
     'eol'             : literal('\n'),
+    'unicode'         : literal('u+').then(plus(hex)).returning(lambda r: StringMatcher(chr(int(as_text(r[1]), 16)))),
 }
 
 
