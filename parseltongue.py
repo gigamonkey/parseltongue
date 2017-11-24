@@ -2,6 +2,9 @@
 # Simple PEG parser framework.
 #
 
+verbose = False
+depth = 0
+
 class TextInput:
 
     def __init__(self, text, position=0):
@@ -10,6 +13,9 @@ class TextInput:
 
     def next(self, newpos):
         return TextInput(self.text, newpos)
+
+    def eof(self):
+        return self.position >= len(self.text)
 
     def between(self, next):
         return self.text[self.position:next.position]
@@ -40,6 +46,20 @@ class Matcher:
     def then(self, expr):
         return SequenceMatcher([self, match(expr)])
 
+    def match(self, grammar, input):
+        global depth
+        indent = ' ' * depth
+        if verbose: print('{}Matching {} at {}'.format(indent, self, input.position))
+        depth += 1
+        ok, next, r = self._match(grammar, input)
+        depth -= 1
+        if verbose:
+            if ok:
+                print('{}{} matched at {} up to {} returning {}'.format(indent, self, input.position, next.position, r))
+            else:
+                print('{}{} failed at {}'.format(indent, self, input.position))
+        return ok, next, r
+
     def returning(self, x):
         if callable(x):
             fn = x
@@ -56,7 +76,7 @@ class Builder(Matcher):
         self.preceeding = preceeding
         self.fn = fn
 
-    def match(self, grammar, input):
+    def _match(self, grammar, input):
         ok, next, r = self.preceeding.match(grammar, input)
         if ok:
             return ok, next, self.fn(r)
@@ -69,7 +89,10 @@ class RuleMatcher(Matcher):
     def __init__(self, name):
         self.name = name
 
-    def match(self, grammar, input):
+    def __str__(self):
+        return 'RuleMatcher({})'.format(self.name)
+
+    def _match(self, grammar, input):
         ok, next, r = grammar[self.name].match(grammar, input)
         return ok, next, r
 
@@ -79,7 +102,10 @@ class StringMatcher(Matcher):
     def __init__(self, s):
         self.s = s
 
-    def match(self, grammar, input):
+    def __str__(self):
+        return 'StringMatcher(\'{}\')'.format(self.s)
+
+    def _match(self, grammar, input):
         return input.match_string(self.s)
 
 
@@ -88,7 +114,7 @@ class CharMatcher(Matcher):
     def __init__(self, p):
         self.p = p
 
-    def match(self, grammar, input):
+    def _match(self, grammar, input):
         return input.match_char_predicate(self.p)
 
 class SequenceMatcher(Matcher):
@@ -96,10 +122,13 @@ class SequenceMatcher(Matcher):
     def __init__(self, exprs):
         self.exprs = exprs
 
+    def __str__(self):
+        return 'SequenceMatcher({})'.format(', '.join(str(e) for e in self.exprs))
+
     def then(self, expr):
         return SequenceMatcher(self.exprs + [match(expr)])
 
-    def match(self, grammar, input):
+    def _match(self, grammar, input):
         results = []
         new_input = input
         for e in self.exprs:
@@ -115,7 +144,10 @@ class ChoiceMatcher(Matcher):
     def __init__(self, choices):
         self.choices = choices
 
-    def match(self, grammar, input):
+    def __str__(self):
+        return 'ChoiceMatcher({})'.format(', '.join(str(c) for c in self.choices))
+
+    def _match(self, grammar, input):
         for c in self.choices:
             ok, next, result = c.match(grammar, input)
             if ok:
@@ -128,10 +160,14 @@ class StarMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, grammar, input):
+    def __str__(self):
+        return 'StarMatcher({})'.format(self.expr)
+
+    def _match(self, grammar, input):
         results = []
         while True:
             ok, next, r = self.expr.match(grammar, input)
+            assert next.position > input.position if ok else True
             if ok:
                 results.append(r)
                 input = next
@@ -146,7 +182,10 @@ class PlusMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, grammar, input):
+    def __str__(self):
+        return 'PlusMatcher({})'.format(self.expr)
+
+    def _match(self, grammar, input):
         results = []
         new_input = input
         while True:
@@ -167,7 +206,10 @@ class OptionalMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, grammar, input):
+    def __str__(self):
+        return 'OptionalMatcher({})'.format(self.expr)
+
+    def _match(self, grammar, input):
         ok, next, r = self.expr.match(grammar, input)
         if ok:
             return ok, next, r
@@ -179,7 +221,10 @@ class AndMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, grammar, input):
+    def __str__(self):
+        return 'AndMatcher({})'.format(self.expr)
+
+    def _match(self, grammar, input):
         ok, _, _ = self.expr.match(grammar, input)
         return ok, input, None
 
@@ -188,7 +233,10 @@ class NotMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, grammar, input):
+    def __str__(self):
+        return 'NotMatcher({})'.format(self.expr)
+
+    def _match(self, grammar, input):
         ok, _, _ = self.expr.match(grammar, input)
         return not ok, input, None
 
@@ -197,19 +245,26 @@ class TextMatcher(Matcher):
     def __init__(self, expr):
         self.expr = expr
 
-    def match(self, grammar, input):
+    def _match(self, grammar, input):
         ok, next, r = self.expr.match(grammar, input)
         if ok:
             return ok, next, ''.join(x for x in r if x is not None)
         else:
             return False, input, None
+
+
+class EofMatcher(Matcher):
+
+    def _match(self, grammar, input):
+        return input.eof(), input, None
+
+
 #
 # API
 #
 
 def match(expr):
     if type(expr) == str:
-        #return StringMatcher(expr)
         return RuleMatcher(expr)
     elif callable(expr):
         return CharMatcher(expr)
@@ -242,3 +297,5 @@ def text(expr):
 
 def parse(grammar, init, input):
     return grammar[init].match(grammar, input)
+
+eof = EofMatcher()
