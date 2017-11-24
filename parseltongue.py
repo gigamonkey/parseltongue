@@ -240,6 +240,7 @@ class NotMatcher(Matcher):
         ok, _, _ = self.expr.match(grammar, input)
         return not ok, input, None
 
+
 class TextMatcher(Matcher):
 
     def __init__(self, expr):
