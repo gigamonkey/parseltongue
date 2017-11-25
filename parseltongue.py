@@ -315,6 +315,9 @@ def not_looking_at(expr):
 def choice(*exprs):
     return ChoiceMatcher([match(e) for e in exprs])
 
+def regex(pattern):
+    return RegexMatcher(pattern)
+
 def text(r):
     return ''.join(x for x in r if x is not None)
 
