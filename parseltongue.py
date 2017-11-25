@@ -2,6 +2,8 @@
 # Simple PEG parser framework.
 #
 
+import re
+
 verbose = False
 depth = 0
 
@@ -34,6 +36,13 @@ class TextInput:
             return True, self.next(p + 1), self.text[p]
         else:
             return False, self, p
+
+    def match_re(self, regex):
+        m = regex.match(self.text, self.position)
+        if m is not None:
+            return True, self.next(m.end()), m.group(0)
+        else:
+            return False, self, self.position
 
     def consumed(self):
         return self.text[:self.position]
@@ -128,6 +137,20 @@ class CharMatcher(Matcher):
 
     def _match(self, grammar, input):
         return input.match_char_predicate(self.p)
+
+
+class RegexMatcher(Matcher):
+
+    def __init__(self, pattern):
+        self.pattern = pattern
+        self.re = re.compile(pattern)
+
+    def __str__(self):
+        return 'RegexMatcher(/{}/)'.format(self.pattern)
+
+    def _match(self, grammar, input):
+        return input.match_re(self.re)
+
 
 class SequenceMatcher(Matcher):
 

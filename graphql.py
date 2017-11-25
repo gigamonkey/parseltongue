@@ -4,14 +4,6 @@ from parseltongue import *
 from peg import grammar
 
 g = grammar('graphql.g')
-g['ws']    = match(lambda c: c in ' \t')
-g['alpha'] = match(str.isalnum)
-g['digit'] = match(str.isdigit)
-g['eol']   = literal('\n')
-
-def token(s):
-    ws = star(str.isspace)
-    return ws.then(literal(s)).then(ws).returning(1)
 
 def make_type(r):
     t, ws, name, lbrace, eol, fields, rbrace = r
@@ -39,7 +31,6 @@ def make_argument(r):
 
 b = {
     'type'          : make_type,
-    'name'          : text,
     'field'         : make_field,
     'arguments'     : 1,
     'argument'      : make_argument,
@@ -53,13 +44,7 @@ grammar = { k : v.returning(b[k]) if k in b else v for k, v in g.items() }
 
 if __name__ == '__main__':
 
-    text1 = """type foo {
-bar: Int
-baz: [String]
-quux(blah: Int = 123): Int!
-}"""
-
-    text2 = """type foo {
+    text1 = """type Foo {
 bar: Int
 baz: [String]
 quux(blah: Int = 123): Int!

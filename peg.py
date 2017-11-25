@@ -20,6 +20,9 @@ def make_choice(r):
 def make_sequence(r):
     return r[0] if len(r) == 1 else SequenceMatcher(r)
 
+def any_char(c):
+    return True
+
 g = {
     'grammar'         : star('production').then(eof).returning(0),
     'production'      : match('name').then(token(':=')).then('expression').then(star('ws')).then('eol').returning(lambda r: (r[0], r[2])),
@@ -27,8 +30,9 @@ g = {
     'expression'      : choice('choice', 'sequence'),
     'choice'          : match('sequence').then(plus(token('|').then('sequence'))).returning(make_choice),
     'sequence'        : star(choice('star', 'plus', 'optional', 'and', 'not', 'base_expression').then(star('ws')).returning(0)).returning(make_sequence),
-    'base_expression' : choice('unicode', 'rule', 'parenthesized', 'literal', 'token'),
+    'base_expression' : choice('regex', 'unicode', 'rule', 'parenthesized', 'literal', 'token'),
     'parenthesized'   : token('(').then('expression').then(token(')')).returning(1),
+    'regex'           : literal('/').then(plus(not_looking_at(literal('/')).then(any_char).returning(1)).text(RegexMatcher)).then(literal('/')).returning(1),
     'unicode'         : match(star('ws')).then(literal('u+').then(plus(hex)).returning(lambda r: StringMatcher(chr(int(text(r[1]), 16))))).then(star('ws')).returning(1),
     'rule'            : match('name').returning(RuleMatcher),
     'star'            : match('base_expression').then(token('*')).returning(lambda r: StarMatcher(r[0])),
