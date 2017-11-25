@@ -41,11 +41,11 @@ g = {
     'and'             : token('&').then('base_expression').returning(lambda r: AndMatcher(r[1])),
     'not'             : token('!').then('base_expression').returning(lambda r: NotMatcher(r[1])),
     'literal'         : literal("'").then(star(not_looking_at(literal("'")).then(lambda _: True).text()).text()).then(literal("'")).returning(lambda r: StringMatcher(r[1])),
-    'token'           : literal('#').then(plus(notspace)).returning(1).text(token),
+    'token'           : literal('`').then(plus(not_looking_at(literal('`')).then(notspace).returning(1))).then(literal('`')).returning(1).text(token),
     'ws'              : choice(literal(' '), literal('\t')),
     'eol'             : literal('\n'),
     'blankline'       : star('ws').then('eol'),
-    'comment'         : star('ws').then(literal('# ')).then(star(not_looking_at('eol').then(any_char))).then('eol'),
+    'comment'         : star('ws').then(literal('#')).then(star(not_looking_at('eol').then(any_char))).then('eol'),
     'ignored'         : choice('blankline', 'comment'),
 }
 
