@@ -23,7 +23,7 @@ def make_sequence(r):
 g = {
     'grammar'         : star('production').then(eof).returning(0),
     'production'      : match('name').then(token(':=')).then('expression').then(star('ws')).then('eol').returning(lambda r: (r[0], r[2])),
-    'name'            : plus(namechar).returning(text),
+    'name'            : plus(namechar).text(),
     'expression'      : choice('choice', 'sequence'),
     'choice'          : match('sequence').then(plus(token('|').then('sequence'))).returning(make_choice),
     'sequence'        : star(choice('star', 'plus', 'optional', 'and', 'not', 'base_expression').then(star('ws')).returning(0)).returning(make_sequence),
@@ -36,8 +36,8 @@ g = {
     'optional'        : match('base_expression').then(token('?')).returning(lambda r: OptionalMatcher(r[0])),
     'and'             : token('&').then('base_expression').returning(lambda r: AndMatcher(r[1])),
     'not'             : token('!').then('base_expression').returning(lambda r: NotMatcher(r[1])),
-    'literal'         : literal("'").then(star(not_looking_at(literal("'")).then(lambda _: True).returning(text)).returning(text)).then(literal("'")).returning(lambda r: StringMatcher(r[1])),
-    'token'           : literal('#').then(plus(notspace)).returning(lambda r: token(text(r[1]))),
+    'literal'         : literal("'").then(star(not_looking_at(literal("'")).then(lambda _: True).text()).text()).then(literal("'")).returning(lambda r: StringMatcher(r[1])),
+    'token'           : literal('#').then(plus(notspace)).returning(1).text(token),
     'ws'              : choice(literal(' '), literal('\t')),
     'eol'             : literal('\n'),
 }

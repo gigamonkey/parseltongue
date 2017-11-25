@@ -17,15 +17,12 @@ def token(s):
 def binary(left, op, right):
     return match(left).then(optional(token(op).then(right))).returning(combine)
 
-def number(r):
-    return int(text(r))
-
 p = {
     'expression':    binary('term', '+', 'expression'),
     'parenthesized': token('(').then('expression').then(token(')')).returning(1),
     'factor':        choice('parenthesized', 'number'),
     'term':          binary('factor', '*', 'term'),
-    'number':        star(str.isdigit).returning(number)
+    'number':        star(str.isdigit).text(int)
 }
 
 if __name__ == '__main__':

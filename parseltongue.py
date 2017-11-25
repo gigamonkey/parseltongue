@@ -70,6 +70,15 @@ class Matcher:
 
         return Builder(self, fn)
 
+    def text(self, fn=None):
+
+        def extract(r):
+            return ''.join(x for x in r if x is not None)
+
+        return Builder(self, extract if fn is None else lambda r: fn(extract(r)))
+
+
+
 class Builder(Matcher):
 
     def __init__(self, preceeding, fn):
