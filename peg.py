@@ -25,7 +25,7 @@ def any_char(c):
 
 g = {
     'grammar'         : star('production').then(eof).returning(0),
-    'production'      : match('name').then(token(':=')).then('expression').then(star('ws')).then('eol').returning(lambda r: (r[0], r[2])),
+    'production'      : star('ignored').then('name').then(token(':=')).then('expression').then(star('ws')).then('eol').then(star('ignored')).returning(lambda r: (r[1], r[3])),
     'name'            : plus(namechar).text(),
     'expression'      : choice('choice', 'sequence'),
     'choice'          : match('sequence').then(plus(token('|').then('sequence'))).returning(make_choice),
@@ -44,6 +44,9 @@ g = {
     'token'           : literal('#').then(plus(notspace)).returning(1).text(token),
     'ws'              : choice(literal(' '), literal('\t')),
     'eol'             : literal('\n'),
+    'blankline'       : star('ws').then('eol'),
+    'comment'         : star('ws').then(literal('# ')).then(star(not_looking_at('eol').then(any_char))).then('eol'),
+    'ignored'         : choice('blankline', 'comment'),
 }
 
 
