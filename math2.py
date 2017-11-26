@@ -3,6 +3,7 @@
 from parseltongue import *
 from peg import grammar
 
+
 def combine(args):
     first, rest = args
     if rest:
@@ -13,10 +14,10 @@ def combine(args):
 
 g = grammar('math.g')
 
-g['expression']    = g['expression'].returning(combine)
+g['expression'] = g['expression'].returning(combine)
 g['parenthesized'] = g['parenthesized'].returning(1)
-g['term']          = g['term'].returning(combine)
-g['number']        = g['number'].text(int)
+g['term'] = g['term'].returning(combine)
+g['number'] = g['number'].text(int)
 
 if __name__ == '__main__':
 

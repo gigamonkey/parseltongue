@@ -2,6 +2,7 @@
 
 from parseltongue import *
 
+
 def combine(args):
     first, rest = args
     if rest:
@@ -10,8 +11,10 @@ def combine(args):
     else:
         return first
 
+
 def tok(s):
     return token(literal(s), str.isspace)
+
 
 def binary(left, op, right):
     return match(left).then(optional(tok(op).then(right))).returning(combine)

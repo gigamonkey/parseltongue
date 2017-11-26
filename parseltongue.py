@@ -7,6 +7,7 @@ import re
 verbose = False
 depth = 0
 
+
 class TextInput:
 
     def __init__(self, text, position=0):
@@ -54,18 +55,31 @@ class TextInput:
 class Visitor:
 
     def visit_builder(self, matcher): return matcher
+
     def visit_rule_matcher(self, matcher): return matcher
+
     def visit_string_matcher(self, matcher): return matcher
+
     def visit_char_matcher(self, matcher): return matcher
+
     def visit_regex_matcher(self, matcher): return matcher
+
     def visit_sequence_matcher(self, matcher): return matcher
+
     def visit_choice_matcher(self, matcher): return matcher
+
     def visit_star_matcher(self, matcher): return matcher
+
     def visit_plus_matcher(self, matcher): return matcher
+
     def visit_optional_matcher(self, matcher): return matcher
+
     def visit_and_matcher(self, matcher): return matcher
+
     def visit_not_matcher(self, matcher): return matcher
+
     def visit_eof_matcher(self, matcher): return matcher
+
     def visit_token_matcher(self, matcher): return matcher
 
 
@@ -77,37 +91,39 @@ class Matcher:
     def match(self, grammar, input):
         global depth
         indent = ' ' * depth
-        if verbose: print('{}Matching {} at {}'.format(indent, self, input.position))
+        if verbose:
+            print('{}Matching {} at {}'.format(indent, self, input.position))
         depth += 1
         ok, next, r = self._match(grammar, input)
         depth -= 1
         if verbose:
             if ok:
-                print('{}{} matched at {} up to {} returning {}'.format(indent, self, input.position, next.position, r))
+                msg = '{}{} matched at {} up to {} returning {}'
+                start = input.position
+                end = next.position
+                print(msg.format(indent, self, start, end, r))
             else:
                 print('{}{} failed at {}'.format(indent, self, input.position))
         return ok, next, r
 
     def returning(self, x):
         if callable(x):
-            fn = x
+            return Builder(self, x)
         elif isinstance(x, int):
-            fn = lambda r: r[x]
+            return Builder(self, lambda r: r[x])
         else:
-            fn = lambda _: x
-
-        return Builder(self, fn)
+            return Builder(self, lambda _: x)
 
     def text(self, fn=None):
 
         def extract(r):
-            return ''.join(x for x in r if x is not None)
+            s = ''.join(x for x in r if x is not None)
+            return s if fn is None else fn(s)
 
-        return Builder(self, extract if fn is None else lambda r: fn(extract(r)))
+        return Builder(self, extract)
 
     def accept(self, visitor):
         raise Exception('accept not implemented')
-
 
 
 class SingleExprMatcher(Matcher):
@@ -142,8 +158,8 @@ class Builder(Matcher):
             return False, input, None
 
     def accept(self, visitor):
-        new_preceeding = self.preceeding.accept(visitor)
-        b = self if new_preceeding == self.preceeding else Builder(new_preceeding, self.fn)
+        new_p = self.preceeding.accept(visitor)
+        b = self if new_p == self.preceeding else Builder(new_p, self.fn)
         return visitor.visit_builder(b)
 
 
@@ -154,15 +170,20 @@ class RuleMatcher(SingleExprMatcher):
 
     def accept(self, visitor): return visitor.visit_rule_matcher(self)
 
+
 class StringMatcher(SingleExprMatcher):
 
     def __str__(self):
-        return 'StringMatcher(\'{}\')'.format(self.expr).replace('\r', '\\r').replace('\n', '\\n').replace('\t', '\\t')
+        escaped = self.expr.replace('\r', '\\r')
+        escaped = escaped.replace('\n', '\\n')
+        escaped = escaped.replace('\t', '\\t')
+        return 'StringMatcher(\'{}\')'.format(escaped)
 
     def _match(self, grammar, input):
         return input.match_string(self.expr)
 
     def accept(self, visitor): return visitor.visit_string_matcher(self)
+
 
 class CharMatcher(SingleExprMatcher):
 
@@ -170,6 +191,7 @@ class CharMatcher(SingleExprMatcher):
         return input.match_char_predicate(self.expr)
 
     def accept(self, visitor): return visitor.visit_char_matcher(self)
+
 
 class RegexMatcher(Matcher):
 
@@ -185,13 +207,15 @@ class RegexMatcher(Matcher):
 
     def accept(self, visitor): return visitor.visit_regex_matcher(self)
 
+
 class SequenceMatcher(Matcher):
 
     def __init__(self, exprs):
         self.exprs = exprs
 
     def __str__(self):
-        return 'SequenceMatcher({})'.format(', '.join(str(e) for e in self.exprs))
+        es = ', '.join(str(e) for e in self.exprs)
+        return 'SequenceMatcher({})'.format(es)
 
     def then(self, expr):
         return SequenceMatcher(self.exprs + [match(expr)])
@@ -208,8 +232,9 @@ class SequenceMatcher(Matcher):
         return True, new_input, results
 
     def accept(self, visitor):
-        m = SequenceMatcher([ e.accept(visitor) for e in self.exprs ])
+        m = SequenceMatcher([e.accept(visitor) for e in self.exprs])
         return visitor.visit_sequence_matcher(m)
+
 
 class ChoiceMatcher(Matcher):
 
@@ -217,7 +242,8 @@ class ChoiceMatcher(Matcher):
         self.choices = choices
 
     def __str__(self):
-        return 'ChoiceMatcher({})'.format(', '.join(str(c) for c in self.choices))
+        cs = ', '.join(str(c) for c in self.choices)
+        return 'ChoiceMatcher({})'.format(cs)
 
     def _match(self, grammar, input):
         for c in self.choices:
@@ -227,8 +253,9 @@ class ChoiceMatcher(Matcher):
         return False, input, None
 
     def accept(self, visitor):
-        m = ChoiceMatcher([ c.accept(visitor) for c in self.choices ])
+        m = ChoiceMatcher([c.accept(visitor) for c in self.choices])
         return visitor.visit_choice_matcher(m)
+
 
 class StarMatcher(SingleExprMatcher):
 
@@ -321,6 +348,7 @@ class EofMatcher(Matcher):
 
     def accept(self, visitor): return visitor.visit_eof_matcher(self)
 
+
 class TokenMatcher(Matcher):
 
     def __init__(self, matcher, ignore):
@@ -329,19 +357,22 @@ class TokenMatcher(Matcher):
         self.m = star(ignore).then(matcher).then(star(ignore)).returning(1)
 
     def __str__(self):
-        return 'TokenMatcher({}, ignoring={})'.format(self.matcher, self.ignore)
+        m = self.matcher
+        i = self.ignore
+        return 'TokenMatcher({}, ignoring={})'.format(self.m, self.i)
 
     def _match(self, grammar, input):
         return self.m.match(grammar, input)
 
     def accept(self, visitor):
-        new_matcher = self.matcher.accept(visitor)
-        new_ignore = self.ignore.accept(visitor)
-        return visitor.visit_token_matcher(TokenMatcher(new_ignore, new_ignore))
+        new_m = self.matcher.accept(visitor)
+        new_i = self.ignore.accept(visitor)
+        return visitor.visit_token_matcher(TokenMatcher(new_m, new_i))
 
 #
 # API
 #
+
 
 def match(expr):
     if type(expr) == str:
@@ -351,35 +382,46 @@ def match(expr):
     else:
         return expr
 
+
 def literal(expr):
     return StringMatcher(expr)
+
 
 def token(m, ws):
     return TokenMatcher(match(m), match(ws))
 
+
 def star(expr):
     return StarMatcher(match(expr))
+
 
 def plus(expr):
     return PlusMatcher(match(expr))
 
+
 def optional(expr):
     return OptionalMatcher(match(expr))
+
 
 def looking_at(expr):
     return AndMatcher(match(expr))
 
+
 def not_looking_at(expr):
     return NotMatcher(match(expr))
+
 
 def choice(*exprs):
     return ChoiceMatcher([match(e) for e in exprs])
 
+
 def regex(pattern):
     return RegexMatcher(pattern)
 
+
 def text(r):
     return ''.join(x for x in r if x is not None)
+
 
 def parse(grammar, init, input):
     return grammar[init].match(grammar, input)
