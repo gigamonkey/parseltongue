@@ -282,6 +282,20 @@ class EofMatcher(Matcher):
         return input.eof(), input, None
 
 
+class TokenMatcher(Matcher):
+
+    def __init__(self, matcher, ignore):
+        self.matcher = matcher
+        self.ignore = ignore
+        self.m = star(ignore).then(matcher).then(star(ignore)).returning(1)
+
+    def __str__(self):
+        return 'TokenMatcher({}, ignoring={})'.format(matcher, ignore)
+
+    def _match(self, grammar, input):
+        return self.m.match(grammar, input)
+
+
 #
 # API
 #
@@ -296,6 +310,9 @@ def match(expr):
 
 def literal(expr):
     return StringMatcher(expr)
+
+def token(m, ws):
+    return TokenMatcher(match(m), match(ws))
 
 def star(expr):
     return StarMatcher(match(expr))

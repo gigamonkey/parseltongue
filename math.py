@@ -10,16 +10,15 @@ def combine(args):
     else:
         return first
 
-def token(s):
-    ws = star(match(str.isspace))
-    return ws.then(literal(s)).then(ws).returning(1)
+def tok(s):
+    return token(literal(s), str.isspace)
 
 def binary(left, op, right):
-    return match(left).then(optional(token(op).then(right))).returning(combine)
+    return match(left).then(optional(tok(op).then(right))).returning(combine)
 
 p = {
     'expression':    binary('term', '+', 'expression'),
-    'parenthesized': token('(').then('expression').then(token(')')).returning(1),
+    'parenthesized': tok('(').then('expression').then(tok(')')).returning(1),
     'factor':        choice('parenthesized', 'number'),
     'term':          binary('factor', '*', 'term'),
     'number':        star(str.isdigit).text(int)
