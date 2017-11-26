@@ -50,6 +50,25 @@ class TextInput:
     def remaining(self):
         return self.text[self.position:]
 
+
+class Visitor:
+
+    def visit_builder(self, matcher): return matcher
+    def visit_rule_matcher(self, matcher): return matcher
+    def visit_string_matcher(self, matcher): return matcher
+    def visit_char_matcher(self, matcher): return matcher
+    def visit_regex_matcher(self, matcher): return matcher
+    def visit_sequence_matcher(self, matcher): return matcher
+    def visit_choice_matcher(self, matcher): return matcher
+    def visit_star_matcher(self, matcher): return matcher
+    def visit_plus_matcher(self, matcher): return matcher
+    def visit_optional_matcher(self, matcher): return matcher
+    def visit_and_matcher(self, matcher): return matcher
+    def visit_not_matcher(self, matcher): return matcher
+    def visit_eof_matcher(self, matcher): return matcher
+    def visit_token_matcher(self, matcher): return matcher
+
+
 class Matcher:
 
     def then(self, expr):
@@ -86,6 +105,9 @@ class Matcher:
 
         return Builder(self, extract if fn is None else lambda r: fn(extract(r)))
 
+    def accept(self, visitor):
+        raise Exception('accept not implemented')
+
 
 
 class SingleExprMatcher(Matcher):
@@ -116,12 +138,18 @@ class Builder(Matcher):
         else:
             return False, input, None
 
+    def accept(self, visitor):
+        new_preceeding = self.preceeding.accept(visitor)
+        b = self if new_preceeding == self.preceeding else Builder(new_preceeding, self.fn)
+        return visitor.visit_builder(b)
+
 
 class RuleMatcher(SingleExprMatcher):
 
     def _match(self, grammar, input):
         return grammar[self.expr].match(grammar, input)
 
+    def accept(self, visitor): return visitor.visit_rule_matcher(self)
 
 class StringMatcher(SingleExprMatcher):
 
@@ -131,12 +159,14 @@ class StringMatcher(SingleExprMatcher):
     def _match(self, grammar, input):
         return input.match_string(self.expr)
 
+    def accept(self, visitor): return visitor.visit_string_matcher(self)
 
 class CharMatcher(SingleExprMatcher):
 
     def _match(self, grammar, input):
         return input.match_char_predicate(self.expr)
 
+    def accept(self, visitor): return visitor.visit_char_matcher(self)
 
 class RegexMatcher(Matcher):
 
@@ -150,6 +180,7 @@ class RegexMatcher(Matcher):
     def _match(self, grammar, input):
         return input.match_re(self.re)
 
+    def accept(self, visitor): return visitor.visit_regex_matcher(self)
 
 class SequenceMatcher(Matcher):
 
@@ -173,6 +204,9 @@ class SequenceMatcher(Matcher):
                 return False, input, None
         return True, new_input, results
 
+    def accept(self, visitor):
+        m = SequenceMatcher([ e.accept(visitor) for e in self.exprs ])
+        return visitor.visit_sequence_matcher(m)
 
 class ChoiceMatcher(Matcher):
 
@@ -189,6 +223,9 @@ class ChoiceMatcher(Matcher):
                 return ok, next, result
         return False, input, None
 
+    def accept(self, visitor):
+        m = ChoiceMatcher([ c.accept(visitor) for c in self.choices ])
+        return visitor.visit_choice_matcher(m)
 
 class StarMatcher(SingleExprMatcher):
 
@@ -204,6 +241,11 @@ class StarMatcher(SingleExprMatcher):
             else:
                 break
         return True, input, results
+
+    def accept(self, visitor):
+        new_expr = self.expr.accept(visitor)
+        m = self if x == self.expr else StarMatcher(new_expr)
+        return visitor.visit_star_matcher(m)
 
 
 class PlusMatcher(SingleExprMatcher):
@@ -224,6 +266,11 @@ class PlusMatcher(SingleExprMatcher):
         else:
             return False, input, None
 
+    def accept(self, visitor):
+        new_expr = self.expr.accept(visitor)
+        m = self if x == self.expr else PlusMatcher(new_expr)
+        return visitor.visit_plus_matcher(m)
+
 
 class OptionalMatcher(SingleExprMatcher):
 
@@ -234,12 +281,22 @@ class OptionalMatcher(SingleExprMatcher):
         else:
             return True, input, None
 
+    def accept(self, visitor):
+        new_expr = self.expr.accept(visitor)
+        m = self if x == self.expr else OptionalMatcher(new_expr)
+        return visitor.visit_optional_matcher(m)
+
 
 class AndMatcher(SingleExprMatcher):
 
     def _match(self, grammar, input):
         ok, _, _ = self.expr.match(grammar, input)
         return ok, input, None
+
+    def accept(self, visitor):
+        new_expr = self.expr.accept(visitor)
+        m = self if x == self.expr else AndMatcher(new_expr)
+        return visitor.visit_and_matcher(m)
 
 
 class NotMatcher(SingleExprMatcher):
@@ -248,12 +305,18 @@ class NotMatcher(SingleExprMatcher):
         ok, _, _ = self.expr.match(grammar, input)
         return not ok, input, None
 
+    def accept(self, visitor):
+        new_expr = self.expr.accept(visitor)
+        m = self if x == self.expr else NotMatcher(new_expr)
+        return visitor.visit_not_matcher(m)
+
 
 class EofMatcher(Matcher):
 
     def _match(self, grammar, input):
         return input.eof(), input, None
 
+    def accept(self, visitor): return visitor.visit_eof_matcher(self)
 
 class TokenMatcher(Matcher):
 
@@ -268,6 +331,10 @@ class TokenMatcher(Matcher):
     def _match(self, grammar, input):
         return self.m.match(grammar, input)
 
+    def accept(self, visitor):
+        new_matcher = self.matcher.accept(visitor)
+        new_ignore = self.ignore.accept(visitor)
+        return visitor.visit_token_matcher(TokenMatcher(new_ignore, new_ignore))
 
 #
 # API
