@@ -11,17 +11,7 @@ def combine(args):
     else:
         return first
 
-
-class TokenRewriter(Visitor):
-
-    def visit_string_matcher(self, matcher):
-        if matcher.expr in '+*()':
-            return TokenMatcher(matcher, regex('\\s'))
-
-
-visitor = TokenRewriter()
-
-g = { name : rule.accept(visitor) for name, rule in grammar('math.g').items() }
+g = grammar('math.g')
 
 g['expression']    = g['expression'].returning(combine)
 g['parenthesized'] = g['parenthesized'].returning(1)

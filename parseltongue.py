@@ -118,6 +118,9 @@ class SingleExprMatcher(Matcher):
     def __eq__(self, other):
         return type(self) == type(other) and self.expr == other.expr
 
+    def __hash__(self):
+        return hash((type(self), self.expr))
+
     def __str__(self):
         return '{}({})'.format(self.__class__.__name__, self.expr)
 
@@ -326,7 +329,7 @@ class TokenMatcher(Matcher):
         self.m = star(ignore).then(matcher).then(star(ignore)).returning(1)
 
     def __str__(self):
-        return 'TokenMatcher({}, ignoring={})'.format(matcher, ignore)
+        return 'TokenMatcher({}, ignoring={})'.format(self.matcher, self.ignore)
 
     def _match(self, grammar, input):
         return self.m.match(grammar, input)
