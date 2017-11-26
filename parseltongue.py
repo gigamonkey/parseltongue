@@ -283,7 +283,7 @@ class OptionalMatcher(SingleExprMatcher):
 
     def accept(self, visitor):
         new_expr = self.expr.accept(visitor)
-        m = self if x == self.expr else OptionalMatcher(new_expr)
+        m = self if new_expr == self.expr else OptionalMatcher(new_expr)
         return visitor.visit_optional_matcher(m)
 
 
@@ -295,7 +295,7 @@ class AndMatcher(SingleExprMatcher):
 
     def accept(self, visitor):
         new_expr = self.expr.accept(visitor)
-        m = self if x == self.expr else AndMatcher(new_expr)
+        m = self if new_expr == self.expr else AndMatcher(new_expr)
         return visitor.visit_and_matcher(m)
 
 
@@ -307,7 +307,7 @@ class NotMatcher(SingleExprMatcher):
 
     def accept(self, visitor):
         new_expr = self.expr.accept(visitor)
-        m = self if x == self.expr else NotMatcher(new_expr)
+        m = self if new_expr == self.expr else NotMatcher(new_expr)
         return visitor.visit_not_matcher(m)
 
 
