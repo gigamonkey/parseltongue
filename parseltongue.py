@@ -88,6 +88,18 @@ class Matcher:
 
 
 
+class SingleExprMatcher(Matcher):
+
+    def __init__(self, expr):
+        self.expr = expr
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.expr == other.expr
+
+    def __str__(self):
+        return '{}({})'.format(self.__class__.__name__, self.expr)
+
+
 class Builder(Matcher):
 
     def __init__(self, preceeding, fn):
@@ -105,38 +117,25 @@ class Builder(Matcher):
             return False, input, None
 
 
-class RuleMatcher(Matcher):
+class RuleMatcher(SingleExprMatcher):
 
-    def __init__(self, name):
-        self.name = name
+    def _match(self, grammar, input):
+        return grammar[self.expr].match(grammar, input)
+
+
+class StringMatcher(SingleExprMatcher):
 
     def __str__(self):
-        return 'RuleMatcher({})'.format(self.name)
+        return 'StringMatcher(\'{}\')'.format(self.expr).replace('\r', '\\r').replace('\n', '\\n').replace('\t', '\\t')
 
     def _match(self, grammar, input):
-        ok, next, r = grammar[self.name].match(grammar, input)
-        return ok, next, r
+        return input.match_string(self.expr)
 
 
-class StringMatcher(Matcher):
-
-    def __init__(self, s):
-        self.s = s
-
-    def __str__(self):
-        return 'StringMatcher(\'{}\')'.format(self.s).replace('\r', '\\r').replace('\n', '\\n').replace('\t', '\\t')
+class CharMatcher(SingleExprMatcher):
 
     def _match(self, grammar, input):
-        return input.match_string(self.s)
-
-
-class CharMatcher(Matcher):
-
-    def __init__(self, p):
-        self.p = p
-
-    def _match(self, grammar, input):
-        return input.match_char_predicate(self.p)
+        return input.match_char_predicate(self.expr)
 
 
 class RegexMatcher(Matcher):
@@ -174,6 +173,7 @@ class SequenceMatcher(Matcher):
                 return False, input, None
         return True, new_input, results
 
+
 class ChoiceMatcher(Matcher):
 
     def __init__(self, choices):
@@ -190,13 +190,7 @@ class ChoiceMatcher(Matcher):
         return False, input, None
 
 
-class StarMatcher(Matcher):
-
-    def __init__(self, expr):
-        self.expr = expr
-
-    def __str__(self):
-        return 'StarMatcher({})'.format(self.expr)
+class StarMatcher(SingleExprMatcher):
 
     def _match(self, grammar, input):
         results = []
@@ -212,13 +206,7 @@ class StarMatcher(Matcher):
         return True, input, results
 
 
-class PlusMatcher(Matcher):
-
-    def __init__(self, expr):
-        self.expr = expr
-
-    def __str__(self):
-        return 'PlusMatcher({})'.format(self.expr)
+class PlusMatcher(SingleExprMatcher):
 
     def _match(self, grammar, input):
         results = []
@@ -236,13 +224,8 @@ class PlusMatcher(Matcher):
         else:
             return False, input, None
 
-class OptionalMatcher(Matcher):
 
-    def __init__(self, expr):
-        self.expr = expr
-
-    def __str__(self):
-        return 'OptionalMatcher({})'.format(self.expr)
+class OptionalMatcher(SingleExprMatcher):
 
     def _match(self, grammar, input):
         ok, next, r = self.expr.match(grammar, input)
@@ -251,25 +234,15 @@ class OptionalMatcher(Matcher):
         else:
             return True, input, None
 
-class AndMatcher(Matcher):
 
-    def __init__(self, expr):
-        self.expr = expr
-
-    def __str__(self):
-        return 'AndMatcher({})'.format(self.expr)
+class AndMatcher(SingleExprMatcher):
 
     def _match(self, grammar, input):
         ok, _, _ = self.expr.match(grammar, input)
         return ok, input, None
 
-class NotMatcher(Matcher):
 
-    def __init__(self, expr):
-        self.expr = expr
-
-    def __str__(self):
-        return 'NotMatcher({})'.format(self.expr)
+class NotMatcher(SingleExprMatcher):
 
     def _match(self, grammar, input):
         ok, _, _ = self.expr.match(grammar, input)
