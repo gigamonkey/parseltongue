@@ -26,9 +26,9 @@ def any_char(c):
 g = {
     'grammar'         : star('vars').then(star('production')).then(eof).returning(lambda r: { 'vars': r[0], 'rules': r[1] }),
     'vars'            : star('ignored').then(choice('TOKENS', 'WHITESPACE')).returning(1),
-    'TOKENS'          : tok('TOKENS: ').then(plus(not_looking_at('eol').then(choice('literal', 'rule')).then(star('ws')).returning(1))).then(star('ws')).then('eol').returning(lambda r: ('TOKENS', r[1])),
-    'WHITESPACE'      : tok('WHITESPACE: ').then('expression').then(star('ws')).then('eol').returning(lambda r: ('WHITESPACE', r[1])),
-    'production'      : star('ignored').then('name').then(tok(':=')).then('expression').then(star('ws')).then('eol').then(star('ignored')).returning(lambda r: (r[1], r[3])),
+    'TOKENS'          : tok('TOKENS: ').then(plus(not_looking_at('eol').then(choice('literal', 'rule')).then(star('ws')).returning(1))).then('eol').returning(lambda r: ('TOKENS', r[1])),
+    'WHITESPACE'      : tok('WHITESPACE: ').then('expression').then('eol').returning(lambda r: ('WHITESPACE', r[1])),
+    'production'      : star('ignored').then('name').then(tok(':=')).then('expression').then('eol').then(star('ignored')).returning(lambda r: (r[1], r[3])),
     'name'            : plus(namechar).text(),
     'expression'      : choice('choice', 'sequence'),
     'choice'          : match('sequence').then(plus(tok('|').then('sequence'))).returning(make_choice),
@@ -46,10 +46,9 @@ g = {
     'literal'         : literal("'").then(star(not_looking_at(literal("'")).then(lambda _: True).text()).text()).then(literal("'")).returning(lambda r: StringMatcher(r[1])),
     'token'           : literal('`').then(plus(not_looking_at(literal('`')).then(notspace).returning(1))).then(literal('`')).returning(1).text(token),
     'ws'              : choice(literal(' '), literal('\t')),
-    'eol'             : literal('\n'),
-    'blankline'       : star('ws').then('eol'),
+    'eol'             : star('ws').then(literal('\n')),
     'comment'         : star('ws').then(literal('#')).then(star(not_looking_at('eol').then(any_char))).then('eol'),
-    'ignored'         : choice('blankline', 'comment'),
+    'ignored'         : choice('eol', 'comment'),
 }
 
 
