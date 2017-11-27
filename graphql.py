@@ -63,6 +63,3 @@ quux(blah: Int = 123): Int!
         print(json.dumps(r, indent=4))
     else:
         print('Parse failed')
-        print("consumed '{}'".format(input.consumed()))
-        print("remaining '{}'".format(input.remaining()))
-        print(json.dumps(r, indent=4))
