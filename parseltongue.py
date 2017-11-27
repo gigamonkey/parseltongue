@@ -14,9 +14,9 @@ class Input:
 
     def fail(self): return False, self, None
 
-    def match_eof(self): raise Exception("abstract")
-
     def match(self, matcher, grammar): raise Exception("abstract")
+
+    def match_eof(self): raise Exception("abstract")
 
     def match_string(self, s): raise Exception("abstract")
 
@@ -41,7 +41,7 @@ class TextInput(Input):
         if verbose:
             print('{}Matching {} at {}'.format(indent, matcher, self.position))
         depth += 1
-        ok, next, r = matcher._match(grammar, self)
+        ok, next, r = matcher.match(grammar, self)
         depth -= 1
         if verbose:
             if ok:
@@ -115,7 +115,7 @@ class Visitor:
 
 class Matcher:
 
-    def _match(self, grammar, input): pass
+    def match(self, grammar, input): pass
 
     def then(self, expr):
         return SequenceMatcher([self, match(expr)])
@@ -166,7 +166,7 @@ class Builder(Matcher):
     def __str__(self):
         return 'Builder({})'.format(self.preceeding)
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         ok, next, r = input.match(self.preceeding, grammar)
         if ok:
             return input.ok(next, self.fn(r))
@@ -181,7 +181,7 @@ class Builder(Matcher):
 
 class RuleMatcher(SingleExprMatcher):
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         return input.match(grammar[self.expr], grammar)
 
     def accept(self, visitor): return visitor.visit_rule_matcher(self)
@@ -195,7 +195,7 @@ class StringMatcher(SingleExprMatcher):
         escaped = escaped.replace('\t', '\\t')
         return escaped
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         return input.match_string(self.expr)
 
     def accept(self, visitor): return visitor.visit_string_matcher(self)
@@ -203,7 +203,7 @@ class StringMatcher(SingleExprMatcher):
 
 class CharMatcher(SingleExprMatcher):
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         return input.match_char_predicate(self.expr)
 
     def accept(self, visitor): return visitor.visit_char_matcher(self)
@@ -215,7 +215,7 @@ class RegexMatcher(SingleExprMatcher):
         super().__init__(pattern)
         self.re = re.compile(pattern)
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         return input.match_re(self.re)
 
     def accept(self, visitor): return visitor.visit_regex_matcher(self)
@@ -229,7 +229,7 @@ class SequenceMatcher(SingleExprMatcher):
     def then(self, expr):
         return SequenceMatcher(self.expr + [match(expr)])
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         results = []
         new_input = input
         for e in self.expr:
@@ -250,7 +250,7 @@ class ChoiceMatcher(SingleExprMatcher):
     def _expr_str(self):
         return ', '.join(str(c) for c in self.expr)
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         for c in self.expr:
             ok, next, result = input.match(c, grammar)
             if ok:
@@ -264,7 +264,7 @@ class ChoiceMatcher(SingleExprMatcher):
 
 class StarMatcher(SingleExprMatcher):
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         results = []
         while True:
             ok, next, r = input.match(self.expr, grammar)
@@ -285,7 +285,7 @@ class StarMatcher(SingleExprMatcher):
 
 class PlusMatcher(SingleExprMatcher):
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         results = []
         new_input = input
         while True:
@@ -309,7 +309,7 @@ class PlusMatcher(SingleExprMatcher):
 
 class OptionalMatcher(SingleExprMatcher):
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         ok, next, r = input.match(self.expr, grammar)
         if ok:
             return input.ok(next, r)
@@ -324,7 +324,7 @@ class OptionalMatcher(SingleExprMatcher):
 
 class AndMatcher(SingleExprMatcher):
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         ok, _, _ = input.match(self.expr, grammar)
         if ok:
             return input.ok(input, None)
@@ -339,7 +339,7 @@ class AndMatcher(SingleExprMatcher):
 
 class NotMatcher(SingleExprMatcher):
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         ok, _, _ = input.match(self.expr, grammar)
         if not ok:
             return input.ok(input, None)
@@ -360,7 +360,7 @@ class EofMatcher(Matcher):
     def __hash__(self):
         return hash(self)
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         return input.match_eof()
 
     def accept(self, visitor): return visitor.visit_eof_matcher(self)
@@ -386,7 +386,7 @@ class TokenMatcher(Matcher):
         i = self.ignore
         return 'TokenMatcher({}, ignoring={})'.format(self.m, self.i)
 
-    def _match(self, grammar, input):
+    def match(self, grammar, input):
         return input.match(self.m, grammar)
 
     def accept(self, visitor):
