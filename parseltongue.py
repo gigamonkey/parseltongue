@@ -138,8 +138,10 @@ class SingleExprMatcher(Matcher):
         return hash((type(self), self.expr))
 
     def __str__(self):
-        return '{}({})'.format(self.__class__.__name__, self.expr)
+        return '{}({})'.format(self.__class__.__name__, self._expr_str())
 
+    def _expr_str(self):
+        return str(self.expr)
 
 class Builder(Matcher):
 
@@ -173,11 +175,11 @@ class RuleMatcher(SingleExprMatcher):
 
 class StringMatcher(SingleExprMatcher):
 
-    def __str__(self):
+    def _expr_str(self):
         escaped = self.expr.replace('\r', '\\r')
         escaped = escaped.replace('\n', '\\n')
         escaped = escaped.replace('\t', '\\t')
-        return 'StringMatcher(\'{}\')'.format(escaped)
+        return escaped
 
     def _match(self, grammar, input):
         return input.match_string(self.expr)
@@ -193,14 +195,11 @@ class CharMatcher(SingleExprMatcher):
     def accept(self, visitor): return visitor.visit_char_matcher(self)
 
 
-class RegexMatcher(Matcher):
+class RegexMatcher(SingleExprMatcher):
 
     def __init__(self, pattern):
-        self.pattern = pattern
+        super().__init__(pattern)
         self.re = re.compile(pattern)
-
-    def __str__(self):
-        return 'RegexMatcher(/{}/)'.format(self.pattern)
 
     def _match(self, grammar, input):
         return input.match_re(self.re)
@@ -208,22 +207,18 @@ class RegexMatcher(Matcher):
     def accept(self, visitor): return visitor.visit_regex_matcher(self)
 
 
-class SequenceMatcher(Matcher):
+class SequenceMatcher(SingleExprMatcher):
 
-    def __init__(self, exprs):
-        self.exprs = exprs
-
-    def __str__(self):
-        es = ', '.join(str(e) for e in self.exprs)
-        return 'SequenceMatcher({})'.format(es)
+    def _expr_str(self):
+        return ', '.join(str(e) for e in self.expr)
 
     def then(self, expr):
-        return SequenceMatcher(self.exprs + [match(expr)])
+        return SequenceMatcher(self.expr + [match(expr)])
 
     def _match(self, grammar, input):
         results = []
         new_input = input
-        for e in self.exprs:
+        for e in self.expr:
             ok, new_input, r = e.match(grammar, new_input)
             if ok:
                 results.append(r)
@@ -232,28 +227,24 @@ class SequenceMatcher(Matcher):
         return True, new_input, results
 
     def accept(self, visitor):
-        m = SequenceMatcher([e.accept(visitor) for e in self.exprs])
+        m = SequenceMatcher([e.accept(visitor) for e in self.expr])
         return visitor.visit_sequence_matcher(m)
 
 
-class ChoiceMatcher(Matcher):
+class ChoiceMatcher(SingleExprMatcher):
 
-    def __init__(self, choices):
-        self.choices = choices
-
-    def __str__(self):
-        cs = ', '.join(str(c) for c in self.choices)
-        return 'ChoiceMatcher({})'.format(cs)
+    def _expr_str(self):
+        return ', '.join(str(c) for c in self.expr)
 
     def _match(self, grammar, input):
-        for c in self.choices:
+        for c in self.expr:
             ok, next, result = c.match(grammar, input)
             if ok:
                 return ok, next, result
         return False, input, None
 
     def accept(self, visitor):
-        m = ChoiceMatcher([c.accept(visitor) for c in self.choices])
+        m = ChoiceMatcher([c.accept(visitor) for c in self.expr])
         return visitor.visit_choice_matcher(m)
 
 
@@ -343,6 +334,12 @@ class NotMatcher(SingleExprMatcher):
 
 class EofMatcher(Matcher):
 
+    def __eq__(self, other):
+        return type(self) == type(other)
+
+    def __hash__(self):
+        return hash(self)
+
     def _match(self, grammar, input):
         return input.eof(), input, None
 
@@ -355,6 +352,14 @@ class TokenMatcher(Matcher):
         self.matcher = matcher
         self.ignore = ignore
         self.m = star(ignore).then(matcher).then(star(ignore)).returning(1)
+
+    def __eq__(self, other):
+        return (type(self) == type(other) and
+                self.matcher == other.matcher and
+                self.ignore == other.ignore)
+
+    def __hash__(self):
+        return hash((type(self), self.matcher, self.ignore))
 
     def __str__(self):
         m = self.matcher
