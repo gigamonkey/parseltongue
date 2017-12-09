@@ -49,7 +49,7 @@ class TextInput(Input):
                 msg = '{}{} matched at {} up to {} returning {}'
                 start = self.pos
                 end = next.pos
-                print(msg.format(indent, matcther, start, end, r))
+                print(msg.format(indent, matcher, start, end, r))
             else:
                 print('{}{} failed at {}'.format(indent, matcher, self.pos))
         return ok, next, r
