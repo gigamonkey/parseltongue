@@ -1,3 +1,11 @@
+#
+# Basically a direct transliteration of the grammar from
+# http://facebook.github.io/graphql/October2016/
+#
+# While syntactically correct, as written this grammar will probably
+# not actually work with parseltongue without some refactoring.
+#
+
 SourceCharacter     := /[\u0009\u000A\u000D\u0020-\uFFFF]/
 UnicodeBOM          := '\ufeff'
 WhiteSpace          := '\u0009' | '\u0020'
