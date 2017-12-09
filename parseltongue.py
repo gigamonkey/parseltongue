@@ -26,6 +26,7 @@ class Input:
 
     def position(self): raise Exception("abstract")
 
+
 class TextInput(Input):
 
     def __init__(self, text, position=0):
@@ -39,18 +40,18 @@ class TextInput(Input):
         global depth
         indent = ' ' * depth
         if verbose:
-            print('{}Matching {} at {}'.format(indent, matcher, self.position))
+            print('{}Matching {} at {}'.format(indent, matcher, self.pos))
         depth += 1
         ok, next, r = matcher.match(grammar, self)
         depth -= 1
         if verbose:
             if ok:
                 msg = '{}{} matched at {} up to {} returning {}'
-                start = self.position
-                end = next.position
+                start = self.pos
+                end = next.pos
                 print(msg.format(indent, matcther, start, end, r))
             else:
-                print('{}{} failed at {}'.format(indent, matcher, self.position))
+                print('{}{} failed at {}'.format(indent, matcher, self.pos))
         return ok, next, r
 
     def match_eof(self):
@@ -149,7 +150,7 @@ class SingleExprMatcher(Matcher):
         return type(self) == type(other) and self.expr == other.expr
 
     def __hash__(self):
-        return hash((type(self), self.expr))
+        return hash((type(self), self.expr if type(self.expr) != list else tuple(self.expr)))
 
     def __str__(self):
         return '{}({})'.format(self.__class__.__name__, self._expr_str())
@@ -358,7 +359,7 @@ class EofMatcher(Matcher):
         return type(self) == type(other)
 
     def __hash__(self):
-        return hash(self)
+        return id(self)
 
     def match(self, grammar, input):
         return input.match_eof()
@@ -384,7 +385,7 @@ class TokenMatcher(Matcher):
     def __str__(self):
         m = self.matcher
         i = self.ignore
-        return 'TokenMatcher({}, ignoring={})'.format(self.m, self.i)
+        return 'TokenMatcher({}, ignoring={})'.format(m, i)
 
     def match(self, grammar, input):
         return input.match(self.m, grammar)
