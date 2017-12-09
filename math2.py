@@ -17,12 +17,12 @@ def number(args):
     return int(s)
 
 
-g = grammar('math.g')
-
-g.bind('expression', combine)
-g.bind('parenthesized', 1)
-g.bind('term', combine)
-g.bind('number', number)
+g = grammar('math.g').bindings({
+    'expression': combine,
+    'parenthesized': 1,
+    'term': combine,
+    'number': number
+})
 
 if __name__ == '__main__':
 

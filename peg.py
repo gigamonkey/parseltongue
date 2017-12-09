@@ -76,6 +76,11 @@ class Grammar:
     def bind(self, name, fn):
         self.rules[name] = self.rules[name].returning(fn)
 
+    def bindings(self, bindings):
+        for rule, fn in bindings.items():
+            self.rules[rule] = self.rules[rule].returning(fn)
+        return self
+
     def parse(self, expression, input):
         import parseltongue
         parseltongue.parse(self.rules, expression, input)
