@@ -280,7 +280,7 @@ class StarMatcher(SingleExprMatcher):
 
     def accept(self, visitor):
         new_expr = self.expr.accept(visitor)
-        m = self if x == self.expr else StarMatcher(new_expr)
+        m = self if new_expr == self.expr else StarMatcher(new_expr)
         return visitor.visit_star_matcher(m)
 
 
@@ -304,7 +304,7 @@ class PlusMatcher(SingleExprMatcher):
 
     def accept(self, visitor):
         new_expr = self.expr.accept(visitor)
-        m = self if x == self.expr else PlusMatcher(new_expr)
+        m = self if new_expr == self.expr else PlusMatcher(new_expr)
         return visitor.visit_plus_matcher(m)
 
 
