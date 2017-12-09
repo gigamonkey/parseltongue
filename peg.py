@@ -92,6 +92,6 @@ if __name__ == '__main__':
 
     parseltongue.verbose = False
 
-    r = grammar(sys.argv[1])
+    r = grammar(sys.argv[1]) if len(sys.argv) > 1 else g
     for a, b in r.items():
         print('{} => {}'.format(a, b))
