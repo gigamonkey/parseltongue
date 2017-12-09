@@ -7,9 +7,9 @@
 #
 
 SourceCharacter     := /[\u0009\u000A\u000D\u0020-\uFFFF]/
-UnicodeBOM          := '\ufeff'
-WhiteSpace          := '\u0009' | '\u0020'
-LineTerminator      := '\u000A' | '\u000D' !'\u000A' | '\u000D' '\u000A'
+UnicodeBOM          := u+feff
+WhiteSpace          := u+0009 | u+0020
+LineTerminator      := u+000A | u+000D !u+000A | u+000D u+000A
 Comment             := '#' commentChar*
 CommentChar         := !lineTerminator sourceCharacter
 Comma               := ','
