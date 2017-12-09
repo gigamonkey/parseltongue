@@ -65,6 +65,21 @@ class TokenRewriter(Visitor):
         return TokenMatcher(m, self.whitespace) if m in self.tokens else m
 
 
+class Grammar:
+
+    def __init__(self, rules):
+        self.rules = rules
+
+    def __getitem__(self, key):
+        return self.rules[key]
+
+    def bind(self, name, fn):
+        self.rules[name] = self.rules[name].returning(fn)
+
+    def parse(self, expression, input):
+        import parseltongue
+        parseltongue.parse(self.rules, expression, input)
+
 def grammar(file):
     with open(file) as f:
         input = TextInput(f.read())
@@ -76,9 +91,10 @@ def grammar(file):
 
             if 'TOKENS' in variables and 'WHITESPACE' in variables:
                 visitor = TokenRewriter(variables['TOKENS'], variables['WHITESPACE'])
-                return { name : rule.accept(visitor) for name, rule in r['rules'] }
+                rules = { name : rule.accept(visitor) for name, rule in r['rules'] }
             else:
-                return dict(r['rules'])
+                rules = dict(r['rules'])
+            return Grammar(rules)
         else:
             raise Exception("Can't parse {}".format(file))
 

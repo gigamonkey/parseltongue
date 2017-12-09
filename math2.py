@@ -12,12 +12,17 @@ def combine(args):
     else:
         return first
 
+def number(args):
+    s = ''.join(x for x in args if x is not None)
+    return int(s)
+
+
 g = grammar('math.g')
 
-g['expression'] = g['expression'].returning(combine)
-g['parenthesized'] = g['parenthesized'].returning(1)
-g['term'] = g['term'].returning(combine)
-g['number'] = g['number'].text(int)
+g.bind('expression', combine)
+g.bind('parenthesized', 1)
+g.bind('term', combine)
+g.bind('number', number)
 
 if __name__ == '__main__':
 
