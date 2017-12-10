@@ -3,6 +3,75 @@
 from parseltongue import *
 from peg import grammar
 
+class Operation:
+
+    pass
+
+class NamedOperation(Operation):
+
+    def __init__(self, args):
+        type, name, vars, directives, selection_set = args
+        self.type = type
+        self.name = name
+        self.vars = vars
+        self.directives = directives
+        self.selection_set = selection_set
+
+class AnonymousQuery(Operation):
+
+    def __init__(self, selection_set):
+        self.type = 'query'
+        self.name = None
+        self.vars = None
+        self.directives = None
+        self.selection_set = selection_set
+
+
+class Field:
+
+    def __init__(self, args):
+        alias, name, arguments, directives, selection_set = args
+        self.alias = alias
+        self.name = name
+        self.arguments = arguments
+        self.directives = directives
+        self.selection_set = selection_set
+
+
+class Argument:
+
+    def __init__(self, args):
+        name, value = args
+        self.name = name
+        self.value = value
+
+
+class FragmentDefinition:
+
+    def __init__(self, args):
+        name, type_condition, directives, selection_set = args
+        self.name = name
+        self.type_condition = type_condition
+        self.directives = directives
+        self.selection_set = selection_set
+
+class FragmentSpread:
+
+    def __init__(self, args):
+        name, directives = args
+        self.name = name
+        self.directives = directives
+
+class InlineFragment:
+
+    def __init__(self, args):
+        type_condition, directives, selection_set = args
+        self.type_condition = type_condition
+        self.directives = directives
+        self.selection_set = selection_set
+
+
+
 class Variable:
 
     def __init__(self, name):
@@ -10,6 +79,15 @@ class Variable:
 
     def __str__(self):
         return 'Variable({})'.format(self.name)
+
+class VariableDefinition:
+
+    def __init__(self, args):
+        variable, type, default = args
+        self.variable = variable
+        self.type = type
+        self.default = default
+
 
 class NamedType:
 
@@ -36,6 +114,17 @@ class NonNullType:
         return 'NonNullType({})'.format(self.type)
 
 
+class Directive:
+
+    def __init__(self, args):
+        name, arguments = args
+        self.name = name
+        self.arguments = arguments
+
+class EnumValue:
+
+    def __init__(self, name):
+        self.name = name
 
 
 def identity(x): return x
@@ -49,80 +138,45 @@ def value(x):
 def to_dict(*fields):
     return lambda args: { k:v for k,v in zip(fields, args) if k is not None}
 
-def operation(selection_set, type='query', name=None, vars=None, directives=None):
-    return {
-        'type': type,
-        'name': name,
-        'vars': vars,
-        'directives': directives,
-        'selection_set': selection_set
-    }
-
-
-
-def named_operation(args):
-    # OperationType Name? VariableDefinitions? Directives? SelectionSet
-    selection_set = args[4]
-    extra = { k:v for k,v in zip(['type', 'name', 'vars', 'directives'], args[:4])}
-    return operation(selection_set, **extra)
-
-def anonymous_query(args):
-    return operation(args)
 
 def non_zero(args):
     negsign, d1, ds = args
     n = int('{}{}'.format(d1, ''.join(ds)))
     return n if negsign is None else -n
 
-def make_float(i, f, e):
-    return float('{}.{}e{}'.format(i, f, text(e)))
+def make_float(args):
+    i, f, (s, e) = args
+    return float('{}.{}e{}{}'.format(i, text(f), s, text(e)))
+
+def make_bool(arg):
+    return arg == 'true'
+
+def escaped_unicode(arg):
+    return chr(int(arg, 16))
 
 x = {
-    'LineTerminator': value('\n'),
-    'NamedOperation': named_operation,
-    'AnonymousQuery': anonymous_query,
-    'Field': to_dict('alias', 'name', 'arguments', 'directives', 'selection_set'),
-    'Argument': to_dict('name', 'value'),
-    'FragmentSpread': to_dict('name', 'directives'),
-    'FragmentDefinition': to_dict('name', 'type', 'directives', 'selection_set'),
-    'InlineFragment': to_dict('type', 'directives', 'selection_set'),
-
-
-    'IntegerPart': identity,
-    'Zero': value(0),
-    'NonZero': non_zero,
-
-    'FloatJustFrac': lambda args: make_float(args[0], args[1], '0'),
-    'FloatJustExp': lambda args: make_float(args[0], '0', args[1]),
-    'FloatBoth': lambda args: make_float(*args),
-    'FractionalPart': text,
-    'ExponentPart': lambda args: '{}{}'.format(args[0] or '+', text(args[1])),
-
-    'BooleanValue': lambda x: x == 'true',
-
-    'StringValue': text,
-    'EscapedUnicode': lambda x: chr(int(text(x), 16)),
-    'NullValue': value(None),
-
-    'EnumValue': identity,
-
-    'ObjectValue': identity,
-
-    #  Name ':' Value
-    'ObjectField': identity,
-
-    'Variable': Variable,
-
-    #  Variable ':' Type DefaultValue?
-    'VariableDefinition': identity,
-
-    'NamedType': NamedType,
-    'ListType': ListType,
-    'NonNullType': NonNullType,
-
-    #  '@' Name Arguments?
-    'Directive': to_dict('name', 'arguments')
-
+    'AnonymousQuery'     : AnonymousQuery,
+    'Argument'           : Argument,
+    'BooleanValue'       : make_bool,
+    'Directive'          : Directive,
+    'EnumValue'          : EnumValue,
+    'EscapedUnicode'     : escaped_unicode,
+    'Field'              : Field,
+    'FloatValue'         : make_float,
+    'FragmentDefinition' : FragmentDefinition,
+    'FragmentSpread'     : FragmentSpread,
+    'InlineFragment'     : InlineFragment,
+    'ListType'           : ListType,
+    'NamedOperation'     : NamedOperation,
+    'NamedType'          : NamedType,
+    'NonNullType'        : NonNullType,
+    'NonZero'            : non_zero,
+    'NullValue'          : value(None),
+    'ObjectField'        : tuple,
+    'StringValue'        : text,
+    'Variable'           : Variable,
+    'VariableDefinition' : VariableDefinition,
+    'Zero'               : value(0),
 }
 
 
@@ -218,7 +272,6 @@ if __name__ == '__main__':
     check('ListValue', '[]')
     check('ListValue', '[   ]')
 
-    verbose = True
     check('NullValue', 'null')
     check('Value', 'null')
     check('FractionalPart', '.456')
@@ -227,7 +280,8 @@ if __name__ == '__main__':
     check('ExponentPart', 'e+20')
     check('Value', '$foo')
     check('Value', '123.0')
-    check('FloatJustFrac', '123.456')
+    verbose = True
+    check('FloatValue', '123.456')
     check('Value', '123.456')
     check('Value', '123e20')
     check('Value', '123.456e20')

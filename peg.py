@@ -32,7 +32,7 @@ g = {
     'name'            : plus(namechar).text(),
     'expression'      : choice('choice', 'sequence'),
     'choice'          : match('sequence').then(plus(ignoring(tok('|')).then('sequence'))).returning(make_choice),
-    'sequence'        : star(choice('star', 'plus', 'optional', 'and', 'not', 'nothing', 'base_expression').then(star('ws')).returning(0)).returning(make_sequence),
+    'sequence'        : star(choice('star', 'plus', 'optional', 'and', 'not', 'nothing', 'implicit', 'base_expression').then(star('ws')).returning(0)).returning(make_sequence),
     'base_expression' : choice('regex', 'unicode', 'rule', 'parenthesized', 'literal', 'token'),
     'parenthesized'   : ignoring(tok('(')).then('expression').then(ignoring(tok(')'))),
     'regex'           : ignoring(literal('/')).then(plus(not_looking_at(literal('/')).then(any_char)).text(RegexMatcher)).then(ignoring(literal('/'))),
@@ -50,6 +50,7 @@ g = {
     'eol'             : star('ws').then(literal('\n')),
     'comment'         : star('ws').then(literal('#')).then(star(not_looking_at('eol').then(any_char))).then('eol'),
     'ignored'         : choice('eol', 'comment'),
+    'implicit'        : ignoring(literal('implicit(')).then(star(not_looking_at(literal(')')).then(any_char))).then(ignoring(literal(')'))).text(ImplicitMatcher),
 }
 
 
@@ -85,6 +86,7 @@ class Grammar:
     def parse(self, expression, input):
         import parseltongue
         parseltongue.parse(self.rules, expression, input)
+
 
 def grammar(file):
     with open(file) as f:

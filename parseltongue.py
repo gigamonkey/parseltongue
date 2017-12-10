@@ -112,6 +112,8 @@ class Visitor:
 
     def visit_nothing_matcher(self, matcher): return matcher
 
+    def visit_implicit_matcher(self, matcher): return matcher
+
     def visit_eof_matcher(self, matcher): return matcher
 
     def visit_token_matcher(self, matcher): return matcher
@@ -369,6 +371,24 @@ class NothingMatcher(SingleExprMatcher):
         new_expr = self.expr.accept(visitor)
         m = self if new_expr == self.expr else NothingMatcher(new_expr)
         return visitor.visit_nothing_matcher(m)
+
+
+class ImplicitMatcher(Matcher):
+
+    def __init__(self, value):
+        self.value = value
+
+    def match(self, grammar, input):
+        return input.ok(input, self.value)
+
+    def accept(self, visitor):
+        return visitor.visit_implicit_matcher(self)
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.value == other.value
+
+    def __hash__(self):
+        return hash((type(self), self.value))
 
 
 class EofMatcher(Matcher):
