@@ -15,13 +15,16 @@ def combine(args):
 def tok(s):
     return token(literal(s), str.isspace)
 
+def punc(m):
+    return m.returning(Nothing)
+
 
 def binary(left, op, right):
     return match(left).then(optional(tok(op).then(right))).returning(combine)
 
 p = {
     'expression':    binary('term', '+', 'expression'),
-    'parenthesized': tok('(').then('expression').then(tok(')')).returning(1),
+    'parenthesized': punc(tok('(')).then('expression').then(punc(tok(')'))),
     'factor':        choice('parenthesized', 'number'),
     'term':          binary('factor', '*', 'term'),
     'number':        star(str.isdigit).text(int)

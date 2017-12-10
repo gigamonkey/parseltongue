@@ -7,6 +7,7 @@ import re
 verbose = False
 depth = 0
 
+Nothing = object()
 
 class Input:
 
@@ -108,6 +109,8 @@ class Visitor:
     def visit_and_matcher(self, matcher): return matcher
 
     def visit_not_matcher(self, matcher): return matcher
+
+    def visit_nothing_matcher(self, matcher): return matcher
 
     def visit_eof_matcher(self, matcher): return matcher
 
@@ -236,10 +239,11 @@ class SequenceMatcher(SingleExprMatcher):
         for e in self.expr:
             ok, new_input, r = new_input.match(e, grammar)
             if ok:
-                results.append(r)
+                if r != Nothing:
+                    results.append(r)
             else:
                 return input.fail()
-        return input.ok(new_input, results)
+        return input.ok(new_input, results if len(results) > 1 else results[0])
 
     def accept(self, visitor):
         m = SequenceMatcher([e.accept(visitor) for e in self.expr])
@@ -351,6 +355,20 @@ class NotMatcher(SingleExprMatcher):
         new_expr = self.expr.accept(visitor)
         m = self if new_expr == self.expr else NotMatcher(new_expr)
         return visitor.visit_not_matcher(m)
+
+class NothingMatcher(SingleExprMatcher):
+
+    def match(self, grammar, input):
+        ok, next, _ = input.match(self.expr, grammar)
+        if ok:
+            return input.ok(next, Nothing)
+        else:
+            return input.fail()
+
+    def accept(self, visitor):
+        new_expr = self.expr.accept(visitor)
+        m = self if new_expr == self.expr else NothingMatcher(new_expr)
+        return visitor.visit_nothing_matcher(m)
 
 
 class EofMatcher(Matcher):
