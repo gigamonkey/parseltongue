@@ -15,7 +15,7 @@ def tok(text):
     return token(literal(text), 'ws')
 
 def make_choice(r):
-    return ChoiceMatcher([r[0], *[x[1] for x in r[1]]])
+    return ChoiceMatcher([r[0], *r[1]])
 
 def make_sequence(r):
     return r[0] if len(r) == 1 else SequenceMatcher(r)
@@ -25,17 +25,17 @@ def any_char(c):
 
 g = {
     'grammar'         : star('vars').then(star('production')).then(eof).returning(lambda r: { 'vars': r[0], 'rules': r[1] }),
-    'vars'            : star('ignored').then(choice('TOKENS', 'WHITESPACE')).returning(1),
-    'TOKENS'          : tok('TOKENS: ').then(plus(not_looking_at('eol').then(choice('literal', 'rule')).then(star('ws')).returning(1))).then('eol').returning(lambda r: ('TOKENS', r[1])),
+    'vars'            : ignoring(star('ignored')).then(choice('TOKENS', 'WHITESPACE')),
+    'TOKENS'          : tok('TOKENS: ').then(plus(not_looking_at('eol').then(choice('literal', 'rule')).then(ignoring(star('ws'))))).then('eol').returning(lambda r: ('TOKENS', r[1])),
     'WHITESPACE'      : tok('WHITESPACE: ').then('expression').then('eol').returning(lambda r: ('WHITESPACE', r[1])),
     'production'      : star('ignored').then('name').then(tok(':=')).then('expression').then('eol').then(star('ignored')).returning(lambda r: (r[1], r[3])),
     'name'            : plus(namechar).text(),
     'expression'      : choice('choice', 'sequence'),
-    'choice'          : match('sequence').then(plus(tok('|').then('sequence'))).returning(make_choice),
+    'choice'          : match('sequence').then(plus(ignoring(tok('|')).then('sequence'))).returning(make_choice),
     'sequence'        : star(choice('star', 'plus', 'optional', 'and', 'not', 'nothing', 'base_expression').then(star('ws')).returning(0)).returning(make_sequence),
     'base_expression' : choice('regex', 'unicode', 'rule', 'parenthesized', 'literal', 'token'),
-    'parenthesized'   : tok('(').then('expression').then(tok(')')).returning(1),
-    'regex'           : literal('/').then(plus(not_looking_at(literal('/')).then(any_char).returning(1)).text(RegexMatcher)).then(literal('/')).returning(1),
+    'parenthesized'   : ignoring(tok('(')).then('expression').then(ignoring(tok(')'))),
+    'regex'           : ignoring(literal('/')).then(plus(not_looking_at(literal('/')).then(any_char)).text(RegexMatcher)).then(ignoring(literal('/'))),
     'unicode'         : match(star('ws')).then(literal('u+').then(plus(hex)).returning(lambda r: StringMatcher(chr(int(text(r[1]), 16))))).then(star('ws')).returning(1),
     'rule'            : match('name').returning(RuleMatcher),
     'star'            : match('base_expression').then(tok('*')).returning(lambda r: StarMatcher(r[0])),
@@ -44,8 +44,8 @@ g = {
     'and'             : tok('&').then('base_expression').returning(lambda r: AndMatcher(r[1])),
     'not'             : tok('!').then('base_expression').returning(lambda r: NotMatcher(r[1])),
     'nothing'         : tok('~').then('base_expression').returning(lambda r: NothingMatcher(r[1])),
-    'literal'         : literal("'").then(star(not_looking_at(literal("'")).then(lambda _: True).text()).text()).then(literal("'")).returning(lambda r: StringMatcher(r[1])),
-    'token'           : literal('`').then(plus(not_looking_at(literal('`')).then(notspace).returning(1))).then(literal('`')).returning(1).text(token),
+    'literal'         : ignoring(literal("'")).then(star(not_looking_at(literal("'")).then(any_char)).text(StringMatcher)).then(ignoring(literal("'"))),
+    'token'           : ignoring(literal('`')).then(plus(not_looking_at(literal('`')).then(notspace)).text()).then(ignoring(literal('`'))),
     'ws'              : choice(literal(' '), literal('\t')),
     'eol'             : star('ws').then(literal('\n')),
     'comment'         : star('ws').then(literal('#')).then(star(not_looking_at('eol').then(any_char))).then('eol'),

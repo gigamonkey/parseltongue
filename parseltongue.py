@@ -332,7 +332,7 @@ class AndMatcher(SingleExprMatcher):
     def match(self, grammar, input):
         ok, _, _ = input.match(self.expr, grammar)
         if ok:
-            return input.ok(input, None)
+            return input.ok(input, Nothing)
         else:
             return input.fail()
 
@@ -347,7 +347,7 @@ class NotMatcher(SingleExprMatcher):
     def match(self, grammar, input):
         ok, _, _ = input.match(self.expr, grammar)
         if not ok:
-            return input.ok(input, None)
+            return input.ok(input, Nothing)
         else:
             return input.fail()
 
@@ -433,6 +433,10 @@ def literal(expr):
 
 def token(m, ws):
     return TokenMatcher(match(m), match(ws))
+
+
+def ignoring(m):
+    return NothingMatcher(m)
 
 
 def star(expr):
