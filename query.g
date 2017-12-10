@@ -1,4 +1,7 @@
-TOKENS: '!' '$' '(' ')' '...' ':' '=' '@' '[' ']' '{' '|' '}' Name IntValue FloatValue StringValue
+# Munged from a direct transliteration of the grammar from
+# http://facebook.github.io/graphql/October2016/
+
+TOKENS: '!' '$' '(' ')' '...' ':' '=' '@' '[' ']' '{' '|' '}' Name IntValue FloatValue StringValue BooleanValue NullValue EnumValue
 WHITESPACE: Ignored
 
 SourceCharacter     := /[\u0009\u000A\u000D\u0020-\uFFFF]/
