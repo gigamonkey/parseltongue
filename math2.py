@@ -19,7 +19,6 @@ def number(args):
 
 g = grammar('math.g').bindings({
     'expression': combine,
-    'parenthesized': 1,
     'term': combine,
     'number': number
 })

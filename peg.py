@@ -32,7 +32,7 @@ g = {
     'name'            : plus(namechar).text(),
     'expression'      : choice('choice', 'sequence'),
     'choice'          : match('sequence').then(plus(tok('|').then('sequence'))).returning(make_choice),
-    'sequence'        : star(choice('star', 'plus', 'optional', 'and', 'not', 'base_expression').then(star('ws')).returning(0)).returning(make_sequence),
+    'sequence'        : star(choice('star', 'plus', 'optional', 'and', 'not', 'nothing', 'base_expression').then(star('ws')).returning(0)).returning(make_sequence),
     'base_expression' : choice('regex', 'unicode', 'rule', 'parenthesized', 'literal', 'token'),
     'parenthesized'   : tok('(').then('expression').then(tok(')')).returning(1),
     'regex'           : literal('/').then(plus(not_looking_at(literal('/')).then(any_char).returning(1)).text(RegexMatcher)).then(literal('/')).returning(1),
@@ -43,6 +43,7 @@ g = {
     'optional'        : match('base_expression').then(tok('?')).returning(lambda r: OptionalMatcher(r[0])),
     'and'             : tok('&').then('base_expression').returning(lambda r: AndMatcher(r[1])),
     'not'             : tok('!').then('base_expression').returning(lambda r: NotMatcher(r[1])),
+    'nothing'         : tok('~').then('base_expression').returning(lambda r: NothingMatcher(r[1])),
     'literal'         : literal("'").then(star(not_looking_at(literal("'")).then(lambda _: True).text()).text()).then(literal("'")).returning(lambda r: StringMatcher(r[1])),
     'token'           : literal('`').then(plus(not_looking_at(literal('`')).then(notspace).returning(1))).then(literal('`')).returning(1).text(token),
     'ws'              : choice(literal(' '), literal('\t')),
@@ -114,5 +115,5 @@ if __name__ == '__main__':
     parseltongue.verbose = False
 
     r = grammar(sys.argv[1]) if len(sys.argv) > 1 else g
-    for a, b in r.items():
+    for a, b in r.rules.items():
         print('{} => {}'.format(a, b))
