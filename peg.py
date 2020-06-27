@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"Bootstrap grammar that can parse a text-based grammar language."
+
 from parseltongue import *
 
 def namechar(c):

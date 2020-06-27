@@ -17,7 +17,7 @@ def number(args):
     return int(s)
 
 
-g = grammar('math.g').bindings({
+g = grammar('grammars/math.g').bindings({
     'expression': combine,
     'term': combine,
     'number': number

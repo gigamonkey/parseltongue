@@ -180,7 +180,7 @@ x = {
 }
 
 
-g = grammar('query.g').bindings(x)
+g = grammar('grammars/query.g').bindings(x)
 
 
 if __name__ == '__main__':

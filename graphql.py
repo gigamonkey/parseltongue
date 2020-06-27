@@ -3,7 +3,7 @@
 from parseltongue import *
 from peg import grammar
 
-g = grammar('graphql.g')
+g = grammar('grammars/graphql.g')
 
 def make_type(r):
     t, ws, name, lbrace, eol, fields, rbrace = r
