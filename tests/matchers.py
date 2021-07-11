@@ -17,4 +17,4 @@ def test_matcher(matcher, should_match, should_not_match):
 
 if __name__ == "__main__":
 
-    test_matcher(RegexMatcher("[ab]+"), ["a", "b", "ab", "aaabbb"], ["", "ca", "def"])
+    test_matcher(RegexMatcher("[ab]+"), ["a", "b", "ab", "aaabbb"], ["", "ca", "def", "cab"])

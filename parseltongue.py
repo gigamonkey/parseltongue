@@ -81,8 +81,7 @@ class TextInput(Input):
             return self.fail()
 
     def match_re(self, regex):
-        m = regex.match(self.text, self.pos)
-        if m is not None:
+        if (m := regex.match(self.text, self.pos)) is not None:
             return self.ok(self.next(m.end()), m.group(0))
         else:
             return self.fail()
